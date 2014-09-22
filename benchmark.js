@@ -13,7 +13,8 @@ var benchmark = function() {
 		TABLE_ROWS = [
 			{
 				name: 'rowLabel',
-				title: ''
+				title: '',
+				minWidth: 3
 			},
 			{
 				name: 'DOMContentLoaded',
@@ -48,6 +49,7 @@ var benchmark = function() {
 
 	function run() {
 		checkSystemArgs();
+		start();
 		loadPage();
 	}
 
@@ -69,7 +71,7 @@ var benchmark = function() {
 		setSystemFlags();
 
 		url = systemArgs[1];
-		tries = systemArgs[2];
+		tries = parseInt(systemArgs[2]) + 1;
 		triesTotal = tries;
 	}
 
@@ -97,62 +99,27 @@ var benchmark = function() {
 
 	}
 
+	function start() {
+		tables.benchmarks.live().start();
+	}
+
 	function loadPage() {
 		if (!tries) {
 			finish();
 		}
 
 		updateTries();
+		addBenchmarkToTable(currentBenchmark);
 		page.open(url);
 	}
 
 	function finish() {
-		addBenchmarksToTable();
-		addStatsToTable();
+		tables.benchmarks.live().end();
 
-		for(table in tables) {
-			tables[table].print();
-		}
+		addStatsToTable();
+		tables.stats.print();
 
 		phantom.exit();
-	}
-
-	function addBenchmarksToTable() {
-		for (i in benchmarks) {
-			addBenchmarkToTable(benchmarks[i]);
-		}
-	}
-
-	function addBenchmarkToTable(benchmark) {
-		var DOMContentLoadedTime = getBenchmarkAttrTime(
-				benchmark,
-				'DOMContentLoaded'
-			),
-			WindowLoadTime = getBenchmarkAttrTime(
-				benchmark,
-				'WindowLoad'
-			);
-
-		addRowToTable(
-			'benchmarks',
-			triesTotal - benchmark.tries,
-			DOMContentLoadedTime,
-			WindowLoadTime
-		);
-		stats.add('DOMContentLoaded', DOMContentLoadedTime);
-		stats.add('WindowLoad', WindowLoadTime);
-	}
-
-	function getBenchmarkAttrTime(benchmark, attr) {
-		return (benchmark[attr] - benchmark.time) / 1000;
-	}
-
-	function addRowToTable(table, rowLabel, DOMContentLoaded, WindowLoad) {
-		tables[table].addRow({
-			rowLabel: rowLabel,
-			DOMContentLoaded: DOMContentLoaded,
-			WindowLoad: WindowLoad
-		});
 	}
 
 	function addStatsToTable() {
@@ -176,6 +143,17 @@ var benchmark = function() {
 		);
 	}
 
+	function addRowToTable(table, rowLabel, DOMContentLoaded, WindowLoad) {
+		tables[table].addRow({
+			respsonsive1200: '-',
+			respsonsive768: '-',
+			respsonsive320: '-',
+			rowLabel: rowLabel,
+			DOMContentLoaded: DOMContentLoaded,
+			WindowLoad: WindowLoad
+		});
+	}
+
 	function updateTries() {
 		if (currentBenchmarkIsIncomplete()) {
 			benchmarks.pop();
@@ -192,6 +170,36 @@ var benchmark = function() {
 				|| !currentBenchmark.WindowLoad
 			)
 		);
+	}
+
+	function addBenchmarkToTable(benchmark) {
+		if (!benchmark) {
+			return;
+		}
+
+		var DOMContentLoadedTime = getBenchmarkAttrTime(
+				benchmark,
+				'DOMContentLoaded'
+			),
+			WindowLoadTime = getBenchmarkAttrTime(
+				benchmark,
+				'WindowLoad'
+			);
+
+		addRowToTable(
+			'benchmarks',
+			triesTotal - benchmark.tries,
+			DOMContentLoadedTime,
+			WindowLoadTime
+		);
+		stats.add('DOMContentLoaded', DOMContentLoadedTime);
+		stats.add('WindowLoad', WindowLoadTime);
+
+		tables.benchmarks.live().print();
+	}
+
+	function getBenchmarkAttrTime(benchmark, attr) {
+		return (benchmark[attr] - benchmark.time) / 1000;
 	}
 
 	page.onLoadStarted = function () {
