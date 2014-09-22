@@ -1,5 +1,15 @@
 var benchmark = function() {
 	const SHOULD_DEBUG = false,
+		FLAGS = {
+			'-c': {
+				callback: turnOnCaching,
+				option: 'Run with caching.'
+			},
+			'-r': {
+				callback: runAsResponsive,
+				option: 'Run at multiple breakpoints.'
+			}
+		},
 		TABLE_ROWS = [
 			{
 				name: 'rowLabel',
@@ -30,32 +40,61 @@ var benchmark = function() {
 		stats = require('./stats').create().setPrecision(4);
 
 	page.settings.clearMemoryCaches = true;
+	page.settings.webSecurityEnabled = false;
+	page.viewportSize = {
+		width: 1200,
+		height: 800
+	};
 
 	function run() {
-		setSystemArgs();
+		checkSystemArgs();
 		loadPage();
 	}
 
-	function setSystemArgs() {
-		var systemArgsLength = systemArgs.length;
+	function checkSystemArgs() {
+		setSystemArgs();
 
-		if (systemArgsLength < 3 || systemArgsLength > 4) {
+		if (systemArgs.length < 3) {
 			showUsage();
-		}
-
-		url = systemArgs[1];
-		tries = systemArgs[2];
-		triesTotal = tries;
-
-		if (systemArgsLength === 4) {
-			page.settings.clearMemoryCaches = systemArgs[3];
 		}
 	}
 
 	function showUsage() {
 		console.log('Usage:');
-		console.log('benchmark.js <url> <tries> <clearMemoryCaches>(optional)');
+		console.log('benchmark.js <url> <tries>');
 		phantom.exit(1);
+	}
+
+	function setSystemArgs() {
+		setSystemFlags();
+
+		url = systemArgs[1];
+		tries = systemArgs[2];
+		triesTotal = tries;
+	}
+
+	function setSystemFlags() {
+		var systemArgsWithoutFlags = systemArgs,
+			flagIndex = -1;
+
+		for (flag in FLAGS) {
+			flagIndex = systemArgs.indexOf(flag);
+
+			if (flagIndex > 0) {
+				FLAGS[flag].callback();
+				systemArgsWithoutFlags.splice(flagIndex, 1);
+			}
+		}
+
+		systemArgs = systemArgsWithoutFlags;
+	}
+
+	function turnOnCaching() {
+		page.settings.clearMemoryCaches = false;
+	}
+
+	function runAsResponsive() {
+
 	}
 
 	function loadPage() {
@@ -70,8 +109,6 @@ var benchmark = function() {
 	function finish() {
 		addBenchmarksToTable();
 		addStatsToTable();
-
-		// tables.benchmarks.sort().rows('rowLabel').asc();
 
 		for(table in tables) {
 			tables[table].print();
@@ -140,20 +177,32 @@ var benchmark = function() {
 	}
 
 	function updateTries() {
-		if (currentBenchmark) {
-			if (!currentBenchmark.DOMContentLoaded
-				|| !currentBenchmark.WindowLoad
-			) {
-				benchmarks.pop();
-			}
+		if (currentBenchmarkIsIncomplete()) {
+			benchmarks.pop();
+			tries++;
 		}
 
 		tries--;
 	}
 
+	function currentBenchmarkIsIncomplete() {
+		return (currentBenchmark
+			&& (
+				!currentBenchmark.DOMContentLoaded
+				|| !currentBenchmark.WindowLoad
+			)
+		);
+	}
+
 	page.onLoadStarted = function () {
-		addBenchmark(getTime());
+		if (isNewTry()) {
+			addBenchmark(getTime());
+		}
 	};
+
+	function isNewTry() {
+		return !currentBenchmark || currentBenchmark.tries !== tries;
+	}
 
 	function getTime() {
 		return (new Date()).getTime();
@@ -188,15 +237,15 @@ var benchmark = function() {
 	};
 
 	page.onDOMContentLoaded = function() {
-		updateCurrentBenchmark('DOMContentLoaded', getTime());
+		updateCurrentBenchmark('DOMContentLoaded');
 	};
 
-	function updateCurrentBenchmark(attr, value) {
-		currentBenchmark[attr] = value;
+	function updateCurrentBenchmark(attr) {
+		currentBenchmark[attr] = getTime();
 	}
 
 	page.onWindowLoad = function() {
-		updateCurrentBenchmark('WindowLoad', getTime());
+		updateCurrentBenchmark('WindowLoad');
 		loadPage();
 	};
 
