@@ -12,14 +12,17 @@ function table(columnsConfig) {
 		for (i in columnsConfig) {
 			column = columnsConfig[i];
 
-			addColumn(column.name, column.title, column.format);
+			addColumn(column.name, column.title, column.format, column.minWidth);
 		}
 	}
 
-	function addColumn(name, title, format) {
+	function addColumn(name, title, format, minWidth) {
+		var minWidthInt = minWidth || 0,
+			maxLength = Math.max(title.length, minWidthInt);
+
 		columns[name] = {
 			title: title,
-			maxLength: title.length,
+			maxLength: maxLength,
 			format: format
 		};
 
@@ -29,7 +32,10 @@ function table(columnsConfig) {
 	}
 
 	function addRow(obj) {
-		var row = {};
+		var rowIndex = rows.length,
+			row = {
+				index: rowIndex
+			};
 
 		for (column in columns) {
 			row[column] = getRow(column, obj);
@@ -37,7 +43,7 @@ function table(columnsConfig) {
 
 		rows.push(row);
 
-		return this;
+		return rowIndex;
 	}
 
 	function getRow(column, obj) {
@@ -215,13 +221,26 @@ function table(columnsConfig) {
 		console.log('');
 	}
 
+	function live() {
+		return {
+			start: printHeader,
+			print: printCurrentRow,
+			end: printFooter
+		};
+	}
+
+	function printCurrentRow() {
+		printRow(rows[rows.length - 1]);
+	}
+
 	init(columnsConfig);
 
 	return {
 		addColumn: addColumn,
 		addRow: addRow,
 		sort: sort,
-		print: print
+		print: print,
+		live: live
 	}
 }
 
