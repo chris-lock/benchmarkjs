@@ -19,7 +19,11 @@ function stats() {
 	function addValue(name, value) {
 		var stat = stats[name] || addStat(name);
 
-		stat.values.push(value);
+		if (value instanceof Array) {
+			stat.values = stat.values.concat(value);
+		} else {
+			stat.values.push(value);
+		}
 
 		return this;
 	}
@@ -31,7 +35,9 @@ function stats() {
 			total: null,
 			min: null,
 			max: null,
-			average: null
+			average: null,
+			averageS1: null,
+			averageS2: null
 		}
 
 		return stats[name];
@@ -48,46 +54,93 @@ function stats() {
 			return;
 		}
 
-		return updateStat(stat).precision[type];
+		return updateStat(stat)[type];
 	}
 
 	function updateStat(stat) {
-		var statSize = stat.values.length,
-			statValue = null;
+		var size = stat.values.length,
+			value = null,
+			standardDeviation = null;
 
-		if (stat.pointer < statSize) {
-			while (stat.pointer < statSize) {
-				statValue = stat.values[stat.pointer];
+		if (stat.pointer < size) {
+			while (stat.pointer < size) {
+				value = stat.values[stat.pointer];
 
-				stat.total += statValue;
-				stat.min = getValueMin(stat.min, statValue);
-				stat.max = getValueMax(stat.max, statValue);
+				stat.total += value;
+				stat.min = getValueMin(stat.min, value);
+				stat.max = getValueMax(stat.max, value);
 
 				stat.pointer++;
 			}
 
-			stat.average = stat.total / statSize;
-
-			setStatPrecision(stat);
+			stat.average = stat.total / size;
+			standardDeviation = getStandardDeviation(stat.values, stat.average);
+			console.log(standardDeviation);
+			stat.averageS1 = getAverageInStandardDeviation(
+				stat.values,
+				stat.average,
+				standardDeviation
+			);
+			stat.averageS2 = getAverageInStandardDeviation(
+				stat.values,
+				stat.average,
+				standardDeviation * 2
+			);
 		}
 
-		return stat;
+		return setStatPrecision(stat);
 	}
 
-	function getValueMin(statCurrent, statValue) {
-		return getValueBound('min', statCurrent, statValue);
+	function getValueMin(min, value) {
+		return getValueBound('min', min, value);
 	}
 
-	function getValueBound(method, statCurrent, statValue) {
-		if (statCurrent === null) {
-			return statValue;
+	function getValueBound(method, bound, value) {
+		if (bound === null) {
+			return value;
 		}
 
-		return Math[method](statCurrent, statValue);
+		return Math[method](bound, value);
 	}
 
-	function getValueMax(statCurrent, statValue) {
-		return getValueBound('max', statCurrent, statValue);
+	function getValueMax(max, value) {
+		return getValueBound('max', max, value);
+	}
+
+	function getStandardDeviation(values, average) {
+		var totalVariance = 0,
+			difference = null;
+
+			for (i in values) {
+				difference = average - values[i];
+				totalVariance += difference * difference;
+			}
+
+			return Math.sqrt(totalVariance / values.length);
+	}
+
+	function getAverageInStandardDeviation(values, average, standardDeviation) {
+		var valuesInInStandardDeviation = values.filter(function(value) {
+				if (value <= average + standardDeviation
+					&& value >= average - standardDeviation
+				) {
+					return true;
+				}
+
+				return false;
+			});
+
+		return getArrayAverage(valuesInInStandardDeviation);
+	}
+
+	function getArrayAverage(array) {
+		var total = 0;
+
+		for (i in array) {
+			total += array[i];
+		}
+
+		return total / array.length;
 	}
 
 	function setStatPrecision(stat) {
@@ -95,12 +148,16 @@ function stats() {
 			total: calculateForPrecision(stat.total),
 			min: calculateForPrecision(stat.min),
 			max: calculateForPrecision(stat.max),
-			average: calculateForPrecision(stat.average)
+			average: calculateForPrecision(stat.average),
+			averageS1: calculateForPrecision(stat.averageS1),
+			averageS2: calculateForPrecision(stat.averageS2)
 		};
+
+		return stat.precision;
 	}
 
 	function calculateForPrecision(value) {
-		if (precisionScalar === null) {
+		if (precisionScalar === null || value === null) {
 			return value;
 		}
 
@@ -119,13 +176,23 @@ function stats() {
 		return getStatType(name, 'average');
 	}
 
+	function getAverageS1(name) {
+		return getStatType(name, 'averageS1');
+	}
+
+	function getAverageS2(name) {
+		return getStatType(name, 'averageS2');
+	}
+
 	return {
 		setPrecision: setPrecision,
 		add: addValue,
 		total: getTotal,
 		min: getMin,
 		max: getMax,
-		average: getAverage
+		average: getAverage,
+		averageS1: getAverageS1,
+		averageS2: getAverageS2
 	}
 }
 
