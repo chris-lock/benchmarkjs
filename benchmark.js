@@ -14,7 +14,7 @@ var benchmark = function() {
 			{
 				name: 'rowLabel',
 				title: '',
-				minWidth: 3
+				minWidth: 6
 			},
 			{
 				name: 'DOMContentLoaded',
@@ -28,17 +28,18 @@ var benchmark = function() {
 
 	var page = require('webpage').create(),
 		systemArgs = require('system').args,
-		table = require('./table'),
-		tables = {
-			benchmarks: table.create(TABLE_ROWS),
-			stats: table.create(TABLE_ROWS)
-		},
+		tableObj = require('./table'),
+		statsObj = require('./stats'),
+		urls = [],
+		urlIndex = 0,
 		url = '',
 		tries = 1,
 		triesTotal = tries,
 		benchmarks = [],
 		currentBenchmark = null,
-		stats = require('./stats').create().setPrecision(4);
+		tables = {},
+		stats = {},
+		pagDidLoad = true;
 
 	page.settings.clearMemoryCaches = true;
 	page.settings.webSecurityEnabled = false;
@@ -49,8 +50,7 @@ var benchmark = function() {
 
 	function run() {
 		checkSystemArgs();
-		start();
-		loadPage();
+		loadPages();
 	}
 
 	function checkSystemArgs() {
@@ -70,9 +70,10 @@ var benchmark = function() {
 	function setSystemArgs() {
 		setSystemFlags();
 
-		url = systemArgs[1];
-		tries = parseInt(systemArgs[2]) + 1;
-		triesTotal = tries;
+		setUrls(
+			systemArgs[1].split(','),
+			parseInt(systemArgs[2]) + 1
+		);
 	}
 
 	function setSystemFlags() {
@@ -99,12 +100,52 @@ var benchmark = function() {
 
 	}
 
-	function start() {
-		tables.benchmarks.live().start();
+	function setUrls(urlArray, tries) {
+		for (i in urlArray) {
+			urls.push(getUrlObj(urlArray[i], tries));
+		}
+	}
+
+	function getUrlObj(url, urlTries) {
+		return {
+			url: url,
+			tries: urlTries,
+			triesTotal: urlTries,
+			benchmarks: [],
+			tables: {
+				benchmarks: tableObj.create(TABLE_ROWS),
+				stats: tableObj.create(TABLE_ROWS)
+			},
+			stats: statsObj.create().setPrecision(4)
+		};
+	}
+
+	function loadPages() {
+		var urlObj = urls[urlIndex++];
+
+		if (urlObj) {
+			setPageVars(urlObj);
+			loadPage();
+		} else {
+			phantom.exit();
+		}
+	}
+
+	function setPageVars(urlObj) {
+		url = urlObj.url;
+		tries = urlObj.tries;
+		triesTotal = urlObj.triesTotal;
+		benchmarks = urlObj.benchmarks;
+		tables = urlObj.tables;
+		stats = urlObj.stats;
+
+		currentBenchmark = null;
 	}
 
 	function loadPage() {
-		if (!tries) {
+		if (tries === triesTotal) {
+			start();
+		} else if (!tries) {
 			finish();
 		}
 
@@ -113,20 +154,27 @@ var benchmark = function() {
 		page.open(url);
 	}
 
+	function start() {
+		console.log(url);
+		tables.benchmarks.live().start();
+	}
+
 	function finish() {
 		tables.benchmarks.live().end();
 
 		addStatsToTable();
 		tables.stats.print();
 
-		phantom.exit();
+		loadPages();
 	}
 
 	function addStatsToTable() {
 		var statRows = {
-				min: 'min',
-				avg: 'average',
-				max: 'max'
+				'min': 'min',
+				'avg': 'average',
+				'avg Σ1': 'averageS1',
+				'avg Σ2': 'averageS2',
+				'max': 'max'
 			};
 
 		for (statRow in statRows) {
@@ -155,12 +203,15 @@ var benchmark = function() {
 	}
 
 	function updateTries() {
-		if (currentBenchmarkIsIncomplete()) {
-			benchmarks.pop();
-			tries++;
-		}
+		if (pagDidLoad) {
+			if (currentBenchmarkIsIncomplete()) {
+				benchmarks.pop();
+				tries++;
+			}
 
-		tries--;
+			pagDidLoad = false;
+			tries--;
+		}
 	}
 
 	function currentBenchmarkIsIncomplete() {
@@ -225,6 +276,8 @@ var benchmark = function() {
 	}
 
 	page.onInitialized = function() {
+		pagDidLoad = true;
+
 		page.evaluate(function() {
 			document.addEventListener('DOMContentLoaded', function load() {
 				document.removeEventListener('DOMContentLoaded', load, false);
