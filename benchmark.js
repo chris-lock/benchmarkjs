@@ -395,7 +395,7 @@ var benchmark = function() {
 	};
 
 	function renderPage() {
-		if (shouldRender) {
+		if (shouldRender && tries) {
 			if (!limitRenders || tries === triesTotal - 1) {
 				page.render(NAME + '-img/' + getSafeUrl(url, tries) + '.png');
 			}
@@ -429,7 +429,7 @@ var benchmark = function() {
 	}
 
 	function getCleanContent(content) {
-		return content.split('Σ', 'S');
+		return content.split('Σ').join('S');
 	}
 
 	return {
