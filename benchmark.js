@@ -5,9 +5,13 @@ var benchmark = function() {
 				callback: turnOnCaching,
 				option: 'Run with caching.'
 			},
-			'-r': {
-				callback: runAsResponsive,
-				option: 'Run at multiple breakpoints.'
+			// '-r': {
+			// 	callback: runAsResponsive,
+			// 	option: 'Run at multiple breakpoints.'
+			// },
+			'-o': {
+				callback: runWithOutput,
+				option: 'Generate a .txt of the output.'
 			}
 		},
 		TABLE_ROWS = [
@@ -24,7 +28,8 @@ var benchmark = function() {
 				name: 'WindowLoad',
 				title: 'WindowLoad'
 			}
-		];
+		],
+		SECTION_BREAK = '\n\n';
 
 	var page = require('webpage').create(),
 		systemArgs = require('system').args,
@@ -39,7 +44,11 @@ var benchmark = function() {
 		currentBenchmark = null,
 		tables = {},
 		stats = {},
-		pagDidLoad = true;
+		pagDidLoad = true,
+		shouldOutput = false,
+		outputHeader = '',
+		outputBody = '',
+		outputFooter = '';
 
 	page.settings.clearMemoryCaches = true;
 	page.settings.webSecurityEnabled = false;
@@ -54,26 +63,13 @@ var benchmark = function() {
 	}
 
 	function checkSystemArgs() {
-		setSystemArgs();
+		setSystemFlags();
 
 		if (systemArgs.length < 3) {
 			showUsage();
 		}
-	}
 
-	function showUsage() {
-		console.log('Usage:');
-		console.log('benchmark.js <url> <tries>');
-		phantom.exit(1);
-	}
-
-	function setSystemArgs() {
-		setSystemFlags();
-
-		setUrls(
-			systemArgs[1].split(','),
-			parseInt(systemArgs[2]) + 1
-		);
+		setSystemArgs();
 	}
 
 	function setSystemFlags() {
@@ -92,12 +88,34 @@ var benchmark = function() {
 		systemArgs = systemArgsWithoutFlags;
 	}
 
+	function showUsage() {
+		console.log('Usage:');
+		console.log('benchmark.js <url> <tries>');
+
+		for (flag in FLAGS) {
+			console.log('  ' + flag + '\t' + FLAGS[flag].option);
+		}
+
+		phantom.exit(1);
+	}
+
+	function setSystemArgs() {
+		setUrls(
+			systemArgs[1].split(','),
+			parseInt(systemArgs[2]) + 1
+		);
+	}
+
 	function turnOnCaching() {
 		page.settings.clearMemoryCaches = false;
 	}
 
 	function runAsResponsive() {
 
+	}
+
+	function runWithOutput() {
+		shouldOutput = true;
 	}
 
 	function setUrls(urlArray, tries) {
@@ -127,6 +145,10 @@ var benchmark = function() {
 			setPageVars(urlObj);
 			loadPage();
 		} else {
+			if (shouldOutput) {
+				generateOutput();
+			}
+
 			phantom.exit();
 		}
 	}
@@ -165,6 +187,10 @@ var benchmark = function() {
 		addStatsToTable();
 		tables.stats.print();
 
+		if (shouldOutput) {
+			addTablesToOutput();
+		}
+
 		loadPages();
 	}
 
@@ -200,6 +226,15 @@ var benchmark = function() {
 			DOMContentLoaded: DOMContentLoaded,
 			WindowLoad: WindowLoad
 		});
+	}
+
+	function addTablesToOutput() {
+		var urlLine = url + '\n',
+			benchmarksTable = tables.benchmarks.get(),
+			statsTable = tables.stats.get();
+
+		outputHeader += urlLine + statsTable;
+		outputBody += urlLine + benchmarksTable + statsTable + SECTION_BREAK;
 	}
 
 	function updateTries() {
@@ -312,6 +347,21 @@ var benchmark = function() {
 
 	page.onError = function() {
 		// SHUT IT.
+	}
+
+	function generateOutput() {
+		var fs = require('fs'),
+			name = 'benchmarkjs-' + getTime() + '.txt',
+			content = [
+				outputHeader,
+				outputBody,
+				outputFooter
+			].join(SECTION_BREAK);
+
+		fs.write(name, content, 'w');
+
+		console.log('Output generated.')
+		console.log(fs.workingDirectory + '/' + name);
 	}
 
 	return {

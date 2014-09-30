@@ -38,7 +38,7 @@ function table(columnsConfig) {
 			};
 
 		for (column in columns) {
-			row[column] = getRow(column, obj);
+			row[column] = getRowValue(column, obj);
 		}
 
 		rows.push(row);
@@ -46,7 +46,7 @@ function table(columnsConfig) {
 		return rowIndex;
 	}
 
-	function getRow(column, obj) {
+	function getRowValue(column, obj) {
 		var columnObj = columns[column],
 			columnFormat = columnObj.format,
 			columnValue = (columnFormat)
@@ -155,7 +155,7 @@ function table(columnsConfig) {
 		return this;
 	}
 
-	function print() {
+	function printTable() {
 		printHeader();
 		printRows();
 		printFooter();
@@ -163,8 +163,8 @@ function table(columnsConfig) {
 		return this;
 	}
 
-	function printHeader() {
-		printRow(getHeaderRow());
+	function printHeader(suppressOutput) {
+		return printRow(getHeaderRow(), suppressOutput);
 	}
 
 	function getHeaderRow() {
@@ -177,14 +177,28 @@ function table(columnsConfig) {
 		return header;
 	}
 
-	function printRow(rowObj) {
+	function printRow(rowObj, suppressOutput) {
+		var row = getRow(rowObj);
+
+		consoleLog(row, suppressOutput)
+
+		return row + '\n';
+	}
+
+	function consoleLog(output, suppressOutput) {
+		if (!suppressOutput) {
+			console.log(output);
+		}
+	}
+
+	function getRow(rowObj) {
 		var row = '';
 
 		for (i in columnOrder) {
 			row += getFormatedColumn(rowObj, columnOrder[i]);
 		}
 
-		console.log(row);
+		return row;
 	}
 
 	function getFormatedColumn(rowObj, column) {
@@ -209,16 +223,20 @@ function table(columnsConfig) {
 		return spaces;
 	}
 
-	function printRows() {
-		var row = {};
+	function printRows(suppressOutput) {
+		var allRows = '';
 
 		for (i in rows) {
-			printRow(rows[i]);
+			allRows += printRow(rows[i], suppressOutput);
 		}
+
+		return allRows;
 	}
 
-	function printFooter() {
-		console.log('');
+	function printFooter(suppressOutput) {
+		consoleLog('', suppressOutput);
+
+		return '\n';
 	}
 
 	function live() {
@@ -233,14 +251,23 @@ function table(columnsConfig) {
 		printRow(rows[rows.length - 1]);
 	}
 
+	function getTable() {
+		return printHeader(true) + printRows(true) + printFooter(true);
+	}
+
+	function getHeader() {
+
+	}
+
 	init(columnsConfig);
 
 	return {
 		addColumn: addColumn,
 		addRow: addRow,
 		sort: sort,
-		print: print,
-		live: live
+		print: printTable,
+		live: live,
+		get: getTable
 	}
 }
 
