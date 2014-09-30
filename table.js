@@ -255,10 +255,6 @@ function table(columnsConfig) {
 		return printHeader(true) + printRows(true) + printFooter(true);
 	}
 
-	function getHeader() {
-
-	}
-
 	init(columnsConfig);
 
 	return {
