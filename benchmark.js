@@ -44,6 +44,7 @@ var benchmark = function() {
 		systemArgs = require('system').args,
 		tableObj = require('./table'),
 		statsObj = require('./stats'),
+		args = [],
 		urls = [],
 		urlIndex = 0,
 		url = '',
@@ -69,24 +70,42 @@ var benchmark = function() {
 	};
 
 	function run() {
-		checkSystemArgs();
+		checkArgs();
 		loadPages();
 	}
 
-	function checkSystemArgs() {
-		setSystemFlags();
+	function checkArgs() {
+		cleanArgs();
+		setFlags();
 
-		if (systemArgs.length < 3) {
+		if (args.length < 2) {
 			showUsage();
 		}
 
-		setSystemArgs();
+		setArgs();
 	}
 
-	function setSystemFlags() {
+	function cleanArgs() {
+		args = systemArgs
+			.filter(removeSelfArg)
+			.join(' ')
+			.replace(/,\s*/g, ',')
+			.split(' ')
+			.filter(removeEmptyArgs);
+	}
+
+	function removeSelfArg(arg) {
+		return arg.indexOf('benchmark.js') === -1;
+	}
+
+	function removeEmptyArgs(arg) {
+		return arg !== '';
+	}
+
+	function setFlags() {
 		var flag = {};
 
-		for (requestedFlag in getSystemFlags()) {
+		for (requestedFlag in getFlags()) {
 			flag = FLAGS[requestedFlag];
 
 			if (flag) {
@@ -95,10 +114,10 @@ var benchmark = function() {
 		}
 	}
 
-	function getSystemFlags() {
+	function getFlags() {
 		var systemFlags = [];
 
-		systemArgs = systemArgs.filter(function(arg) {
+		args = args.filter(function(arg) {
 			if (arg[0] === '-') {
 				systemFlags.push(arg);
 
@@ -108,22 +127,22 @@ var benchmark = function() {
 			return true;
 		});
 
-		return getUniqueSystemFlag(systemFlags);
+		return getUniqueFlags(systemFlags);
 	}
 
-	function getUniqueSystemFlag(systemFlags) {
-		var uniqueSystemFlags = {},
+	function getUniqueFlags(systemFlags) {
+		var uniqueFlags = {},
 			systemFlagString = '';
 
 		for (i in systemFlags) {
 			systemFlagString = systemFlags[i].replace('-', '');
 
 			for (j in systemFlagString) {
-				uniqueSystemFlags['-' + systemFlagString[j]] = true;
+				uniqueFlags['-' + systemFlagString[j]] = true;
 			}
 		}
 
-		return uniqueSystemFlags;
+		return uniqueFlags;
 	}
 
 	function showUsage() {
@@ -137,10 +156,10 @@ var benchmark = function() {
 		phantom.exit(1);
 	}
 
-	function setSystemArgs() {
+	function setArgs() {
 		setUrls(
-			systemArgs[1].split(','),
-			parseInt(systemArgs[2]) + 1
+			args[0].split(','),
+			parseInt(args[1]) + 1
 		);
 	}
 
@@ -422,13 +441,13 @@ var benchmark = function() {
 				outputFooter
 			].join(SECTION_BREAK);
 
-		fs.write(name, getCleanContent(content), 'w');
+		fs.write(name, cleanContent(content), 'w');
 
 		console.log('Output generated.')
 		console.log(fs.workingDirectory + '/' + name);
 	}
 
-	function getCleanContent(content) {
+	function cleanContent(content) {
 		return content.split('Σ').join('S');
 	}
 
