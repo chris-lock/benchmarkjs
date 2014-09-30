@@ -1,5 +1,6 @@
 var benchmark = function() {
-	const SHOULD_DEBUG = false,
+	const NAME = 'benchmarkjs',
+		SHOULD_DEBUG = false,
 		FLAGS = {
 			'-c': {
 				callback: turnOnCaching,
@@ -9,6 +10,14 @@ var benchmark = function() {
 			// 	callback: runAsResponsive,
 			// 	option: 'Run at multiple breakpoints.'
 			// },
+			'-i': {
+				callback: runWithRender,
+				option: 'Render a .png for each load.'
+			},
+			'-l': {
+				callback: runWithRenderLimited,
+				option: 'Render a .png for the first load of each url.'
+			},
 			'-o': {
 				callback: runWithOutput,
 				option: 'Generate a .txt of the output.'
@@ -45,6 +54,8 @@ var benchmark = function() {
 		tables = {},
 		stats = {},
 		pagDidLoad = true,
+		shouldRender = false,
+		limitRenders = false,
 		shouldOutput = false,
 		outputHeader = '',
 		outputBody = '',
@@ -73,19 +84,46 @@ var benchmark = function() {
 	}
 
 	function setSystemFlags() {
-		var systemArgsWithoutFlags = systemArgs,
-			flagIndex = -1;
+		var flag = {};
 
-		for (flag in FLAGS) {
-			flagIndex = systemArgs.indexOf(flag);
+		for (requestedFlag in getSystemFlags()) {
+			flag = FLAGS[requestedFlag];
 
-			if (flagIndex > 0) {
-				FLAGS[flag].callback();
-				systemArgsWithoutFlags.splice(flagIndex, 1);
+			if (flag) {
+				flag.callback();
+			}
+		}
+	}
+
+	function getSystemFlags() {
+		var systemFlags = [];
+
+		systemArgs = systemArgs.filter(function(arg) {
+			if (arg[0] === '-') {
+				systemFlags.push(arg);
+
+				return false;
+			}
+
+			return true;
+		});
+
+		return getUniqueSystemFlag(systemFlags);
+	}
+
+	function getUniqueSystemFlag(systemFlags) {
+		var uniqueSystemFlags = {},
+			systemFlagString = '';
+
+		for (i in systemFlags) {
+			systemFlagString = systemFlags[i].replace('-', '');
+
+			for (j in systemFlagString) {
+				uniqueSystemFlags['-' + systemFlagString[j]] = true;
 			}
 		}
 
-		systemArgs = systemArgsWithoutFlags;
+		return uniqueSystemFlags;
 	}
 
 	function showUsage() {
@@ -116,6 +154,15 @@ var benchmark = function() {
 
 	function runWithOutput() {
 		shouldOutput = true;
+	}
+
+	function runWithRender() {
+		shouldRender = true;
+	}
+
+	function runWithRenderLimited() {
+		shouldRender = true;
+		limitRenders = true;
 	}
 
 	function setUrls(urlArray, tries) {
@@ -342,8 +389,25 @@ var benchmark = function() {
 
 	page.onWindowLoad = function() {
 		updateCurrentBenchmark('WindowLoad');
+
+		renderPage();
 		loadPage();
 	};
+
+	function renderPage() {
+		if (shouldRender) {
+			if (!limitRenders || tries === triesTotal - 1) {
+				page.render(NAME + '-img/' + getSafeUrl(url, tries) + '.png');
+			}
+		}
+	}
+
+	function getSafeUrl(url) {
+		return (url + '-' + (triesTotal - tries))
+			.split('http://').join('')
+			.split('/').join('-')
+			.split('--').join('-');
+	}
 
 	page.onError = function() {
 		// SHUT IT.
@@ -351,17 +415,21 @@ var benchmark = function() {
 
 	function generateOutput() {
 		var fs = require('fs'),
-			name = 'benchmarkjs-' + getTime() + '.txt',
+			name = NAME + '-' + getTime() + '.txt',
 			content = [
 				outputHeader,
 				outputBody,
 				outputFooter
 			].join(SECTION_BREAK);
 
-		fs.write(name, content, 'w');
+		fs.write(name, getCleanContent(content), 'w');
 
 		console.log('Output generated.')
 		console.log(fs.workingDirectory + '/' + name);
+	}
+
+	function getCleanContent(content) {
+		return content.split('Σ', 'S');
 	}
 
 	return {
