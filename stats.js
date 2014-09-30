@@ -75,7 +75,7 @@ function stats() {
 
 			stat.average = stat.total / size;
 			standardDeviation = getStandardDeviation(stat.values, stat.average);
-			console.log(standardDeviation);
+
 			stat.averageS1 = getAverageInStandardDeviation(
 				stat.values,
 				stat.average,
