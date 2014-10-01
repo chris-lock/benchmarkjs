@@ -47,6 +47,7 @@ var benchmark = function() {
 		args = [],
 		urls = [],
 		urlIndex = 0,
+		runTime = 0,
 		url = '',
 		tries = 1,
 		triesTotal = tries,
@@ -70,8 +71,14 @@ var benchmark = function() {
 	};
 
 	function run() {
+		runTime = getTime();
+
 		checkArgs();
 		loadPages();
+	}
+
+	function getTime() {
+		return (new Date()).getTime();
 	}
 
 	function checkArgs() {
@@ -364,10 +371,6 @@ var benchmark = function() {
 		return !currentBenchmark || currentBenchmark.tries !== tries;
 	}
 
-	function getTime() {
-		return (new Date()).getTime();
-	}
-
 	function addBenchmark(time) {
 		benchmarks.push({
 			tries: tries,
@@ -416,9 +419,13 @@ var benchmark = function() {
 	function renderPage() {
 		if (shouldRender && tries) {
 			if (!limitRenders || tries === triesTotal - 1) {
-				page.render(NAME + '-img/' + getSafeUrl(url, tries) + '.png');
+				page.render(getRunName() + '-img/' + getSafeUrl(url, tries) + '.png');
 			}
 		}
+	}
+
+	function getRunName() {
+		return NAME + '-' + runTime;
 	}
 
 	function getSafeUrl(url) {
@@ -434,7 +441,7 @@ var benchmark = function() {
 
 	function generateOutput() {
 		var fs = require('fs'),
-			name = NAME + '-' + getTime() + '.txt',
+			name = getRunName() + '.txt',
 			content = [
 				outputHeader,
 				outputBody,
