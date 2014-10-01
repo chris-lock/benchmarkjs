@@ -431,8 +431,8 @@ var benchmark = function() {
 	function getSafeUrl(url) {
 		return (url + '-' + (triesTotal - tries))
 			.split('http://').join('')
-			.split('/').join('-')
-			.split('--').join('-');
+			.replace(/[^a-z0-9]/gi, '-')
+			.replace(/-*/g, '-');
 	}
 
 	page.onError = function() {
