@@ -419,7 +419,9 @@ var benchmark = function() {
 	function renderPage() {
 		if (shouldRender && tries) {
 			if (!limitRenders || tries === triesTotal - 1) {
-				page.render(getRunName() + '-img/' + getSafeUrl(url, tries) + '.png');
+				page.render(
+					getRunName() + '-img/' + getSafeUrl(url, tries) + '.png'
+				);
 			}
 		}
 	}
@@ -430,9 +432,9 @@ var benchmark = function() {
 
 	function getSafeUrl(url) {
 		return (url + '-' + (triesTotal - tries))
-			.split('http://').join('')
+			.replace(/https?:\/\//, '')
 			.replace(/[^a-z0-9]/gi, '-')
-			.replace(/-*/g, '-');
+			.replace(/--*/g, '-');
 	}
 
 	page.onError = function() {
