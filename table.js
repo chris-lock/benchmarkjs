@@ -1,95 +1,152 @@
+/**
+ * Table utility object to build, generate, ouput tables in console or text
+ * format.
+ *
+ * @param {array} columnsConfig An array of object representing column
+ * 		{string} name The variable name for the column
+ * 		{string} title The printed title for the column
+ * 		{int} minWidth (optional) The minimum width for the column
+ * 		{function} format (optional) The function to format values with
+ * @return {object} Public methods
+ */
 function table(columnsConfig) {
+		/** @constant The numebr of spaces for a tab. */
 	const TAB_SIZE = 4;
 
-	var self = this,
-		columns = {},
+		/** @type {object} The columns for the table. */
+	var columns = {},
+		/** @type {array} The order of the columns stored by column name. */
 		columnOrder = [],
+		/** @type {array} The original order of columns. */
+		columnDefaultOrder = columnOrder,
+		/** @type {array} The rows for the table. */
 		rows = [];
 
+	/**
+	 * Adds columns to the table preserving order.
+	 *
+	 * @param {array} columnsConfig An array of object representing column
+	 * @return {void}
+	 */
 	function init(columnsConfig) {
-		var column = {};
-
 		for (i in columnsConfig) {
-			column = columnsConfig[i];
-
-			addColumn(column.name, column.title, column.format, column.minWidth);
+			addColumn(columnsConfig[i]);
 		}
 	}
+	/**
+	 * Adds a column. An index can be specified.
+	 *
+	 * @param {object} column An object representing column
+	 * 		{string} name The variable name for the column
+	 * 		{string} title The printed title for the column
+	 * 		{int} minWidth (optional) The minimum width for the column
+	 * 		{function} format (optional) The function to format values with
+	 * @param {int} index The index to add the column at
+	 * @return {object} Returns this for method chaining
+	 */
+	function addColumn(column, index) {
+		updateColumnOrder(column.name, index);
 
-	function addColumn(name, title, format, minWidth) {
-		var minWidthInt = minWidth || 0,
-			maxLength = Math.max(title.length, minWidthInt);
-
-		columns[name] = {
-			title: title,
-			maxLength: maxLength,
-			format: format
+		columns[column.name] = {
+			title: column.title,
+			maxLength: getColumnMaxLength(column),
+			format: column.format
 		};
-
-		columnOrder.push(name);
 
 		return this;
 	}
-
-	function addRow(obj) {
-		var rowIndex = rows.length,
-			row = {
-				index: rowIndex
-			};
-
-		for (column in columns) {
-			row[column] = getRowValue(column, obj);
+	/**
+	 * Updates the columns order by adding the column name to end or the index
+	 * if specified.
+	 *
+	 * @param {string} columnName An array of object representing column
+	 * @param {int} index The index to add the column at
+	 * @return {void}
+	 */
+	function updateColumnOrder(columnName, index) {
+		if (indexIsValid(index)) {
+			columnOrder.splice(index, 0, columnName);
+		} else {
+			columnOrder.push(columnName);
 		}
 
-		rows.push(row);
-
-		return rowIndex;
+		columnDefaultOrder = columnOrder;
 	}
+	/**
+	 * Makes sure the index is valid.
+	 *
+	 * @param {int} index The index to check
+	 * @return {bool} The index is valid
+	 */
+	function indexIsValid(index) {
+		return index > -1;
+	}
+	/**
+	 * Sets the max length to the title length or the min width if provided.
+	 *
+	 * @param {object} column The column object
+	 * @return {int} The max length for the column
+	 */
+	function getColumnMaxLength(column) {
+		return Math.max(
+			(column.minWidth || 0),
+			column.title.length
+		);
+	}
+	function addRow(row) {
+		var newRow = {
+				index: rows.length
+			};
 
-	function getRowValue(column, obj) {
-		var columnObj = columns[column],
-			columnFormat = columnObj.format,
-			columnValue = (columnFormat)
-				? columnFormat(obj, column)
-				: obj[column];
+		for (columnName in columns) {
+			newRow[columnName] = getRowValue(columnName, row);
+		}
 
-		updateColumnMaxLength(columnObj, columnValue);
+		rows.push(newRow);
+
+		return newRow.index;
+	}
+	function getRowValue(columnName, row) {
+		var column = columns[columnName],
+			columnValue = (column.format)
+				? column.format(row, columnName)
+				: row[columnName];
+
+		updateColumnMaxLength(column, columnValue);
 
 		return columnValue;
 	}
-
-	function updateColumnMaxLength(columnObj, columnValue) {
+	function updateColumnMaxLength(column, columnValue) {
 		var columnValueLength = String(columnValue).length;
 
-		if (columnObj.maxLength < columnValueLength) {
-			columnObj.maxLength = columnValueLength;
+		if (column.maxLength < columnValueLength) {
+			column.maxLength = columnValueLength;
 		}
 	}
-
 	function sort() {
 		return {
 			columns: sortColumns,
 			rows: sortRows
 		};
 	}
-
 	function sortColumns() {
 		return {
+			reset: resetColumnOrder,
 			asc: sortColumnsAsc,
 			desc: sortColumnsDesc
 		};
 	}
-
+	function resetColumnOrder() {
+		columnOrder = columnDefaultOrder;
+	}
 	function sortColumnsAsc() {
 		sortColumnsCaseInsensitive();
 
 		return this;
 	}
-
 	function sortColumnsCaseInsensitive() {
 		return columnOrder.sort(sortCaseInsensitive);
 	}
-
 	function sortCaseInsensitive(a, b) {
 		if (!isNaN(a)) {
 			return sortNumeric(a, b);
@@ -105,19 +162,19 @@ function table(columnsConfig) {
 
 		return 0;
 	}
-
 	function sortNumeric(a, b) {
 		return a - b;
 	}
-
 	function sortColumnsDesc() {
 		sortColumnsCaseInsensitive().reverse();
 
 		return this;
 	}
-
 	function sortRows(column) {
 		return {
+			reset: function() {
+				return sortRowsAsc('index');
+			},
 			asc: function() {
 				return sortRowsAsc(column);
 			},
@@ -126,19 +183,16 @@ function table(columnsConfig) {
 			}
 		};
 	}
-
 	function sortRowsAsc(column) {
 		sortRowsByAttrCaseInsensitive(column);
 
 		return this;
 	}
-
 	function sortRowsByAttrCaseInsensitive(column) {
 		return rows.sort(function(a, b) {
 			return sortByAttr(column, a, b);
 		});
 	}
-
 	function sortByAttr(attr, a, b) {
 		var aAttr = a[attr];
 
@@ -148,13 +202,11 @@ function table(columnsConfig) {
 
 		return sortCaseInsensitive(aAttr, b[attr]);
 	}
-
 	function sortRowsDesc(column) {
 		sortRowsByAttrCaseInsensitive(column).reverse();
 
 		return this;
 	}
-
 	function printTable() {
 		printHeader();
 		printRows();
@@ -162,11 +214,9 @@ function table(columnsConfig) {
 
 		return this;
 	}
-
 	function printHeader(suppressOutput) {
 		return printRow(getHeaderRow(), suppressOutput);
 	}
-
 	function getHeaderRow() {
 		var header = {};
 
@@ -176,43 +226,37 @@ function table(columnsConfig) {
 
 		return header;
 	}
-
-	function printRow(rowObj, suppressOutput) {
-		var row = getRow(rowObj);
-
-		consoleLog(row, suppressOutput)
-
-		return row + '\n';
+	function printRow(row, suppressOutput) {
+		return consoleLog(getRow(row), suppressOutput);
 	}
-
 	function consoleLog(output, suppressOutput) {
 		if (!suppressOutput) {
 			console.log(output);
 		}
-	}
 
-	function getRow(rowObj) {
-		var row = '';
+		return output + '\n';
+	}
+	function getRow(row) {
+		var rowOutput = '';
 
 		for (i in columnOrder) {
-			row += getFormatedColumn(rowObj, columnOrder[i]);
+			rowOutput += getFormatedColumn(row, columnOrder[i]);
 		}
 
-		return row;
+		return rowOutput;
 	}
+	function getFormatedColumn(row, columnName) {
+		var columnValue = row[columnName];
 
-	function getFormatedColumn(rowObj, column) {
-		var columnWidth = getColumnWidth(columns[column].maxLength),
-			columnValue = rowObj[column],
-			columnValueLength = String(columnValue).length;
-
-		return columnValue + getSpaces(columnWidth - columnValueLength);
+		return columnValue + getSpaces(
+			getColumnWidth(columnName) - String(columnValue).length
+		);
 	}
+	function getColumnWidth(columnName) {
+		var columnMaxLength = columns[columnName].maxLength;
 
-	function getColumnWidth(columnMaxLength) {
 		return (Math.ceil(columnMaxLength / TAB_SIZE) * TAB_SIZE) + TAB_SIZE;
 	}
-
 	function getSpaces(total) {
 		var spaces = '';
 
@@ -222,7 +266,6 @@ function table(columnsConfig) {
 
 		return spaces;
 	}
-
 	function printRows(suppressOutput) {
 		var allRows = '';
 
@@ -232,13 +275,9 @@ function table(columnsConfig) {
 
 		return allRows;
 	}
-
 	function printFooter(suppressOutput) {
-		consoleLog('', suppressOutput);
-
-		return '\n';
+		return consoleLog('', suppressOutput);
 	}
-
 	function live() {
 		return {
 			start: printHeader,
@@ -246,18 +285,30 @@ function table(columnsConfig) {
 			end: printFooter
 		};
 	}
-
 	function printCurrentRow() {
 		printRow(rows[rows.length - 1]);
 	}
-
 	function getTable() {
 		return printHeader(true) + printRows(true) + printFooter(true);
 	}
 
+	/**
+	 * Init ourself.
+	 */
 	init(columnsConfig);
 
 	return {
+		/**
+		 * Adds a column. An index can be specified.
+		 *
+		 * @param {object} column An object representing column
+		 * 		{string} name The variable name for the column
+		 * 		{string} title The printed title for the column
+		 * 		{int} minWidth (optional) The minimum width for the column
+		 * 		{function} format (optional) The function to format values with
+		 * @param {int} index The index to add the column at
+		 * @return {object} Returns this for method chaining
+		 */
 		addColumn: addColumn,
 		addRow: addRow,
 		sort: sort,
@@ -267,6 +318,11 @@ function table(columnsConfig) {
 	}
 }
 
+/**
+ * Exports a new table object for NodeJs or PhantomJs.
+ *
+ * @export {object} New table object
+ */
 exports.create = function(columnsConfig) {
 	return new table(columnsConfig);
 }
