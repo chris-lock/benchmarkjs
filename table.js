@@ -93,6 +93,13 @@ function table(columnsConfig) {
 			column.title.length
 		);
 	}
+	/**
+	 * Adds a row to the table. The row object for have attributes that match
+	 * the column names not titles.
+	 *
+	 * @param {object} row The row to add
+	 * @return {int} The index of the row added
+	 */
 	function addRow(row) {
 		var newRow = {
 				index: rows.length
@@ -106,6 +113,14 @@ function table(columnsConfig) {
 
 		return newRow.index;
 	}
+	/**
+	 * Gets the column value for the row. Formats it if the column has a format,
+	 * and updates the column max.
+	 *
+	 * @param {string} columnName The name of the column to get the value for
+	 * @param {object} row The row being added
+	 * @return {string} The column value
+	 */
 	function getRowValue(columnName, row) {
 		var column = columns[columnName],
 			columnValue = (column.format)
@@ -116,6 +131,13 @@ function table(columnsConfig) {
 
 		return columnValue;
 	}
+	/**
+	 * Updates the column max length for the value being added if it's longer.
+	 *
+	 * @param {object} column The column object
+	 * @param {string} columnValue The value being added
+	 * @return {void}
+	 */
 	function updateColumnMaxLength(column, columnValue) {
 		var columnValueLength = String(columnValue).length;
 
@@ -123,12 +145,46 @@ function table(columnsConfig) {
 			column.maxLength = columnValueLength;
 		}
 	}
+	/**
+	 * Returns the sort options for the table. All sub functions return this
+	 * for method chaining.
+	 *
+	 * @return {object} The sort options
+	 * 		{object} columns The column sort options
+	 * 			{function} reset Reset the columns to their original order
+	 * 				@return {object} Returns this for method chaining
+	 * 			{function} asc Sorts the columns ascending
+	 * 				@return {object} Returns this for method chaining
+	 * 			{function} desc Sorts the columns descending
+	 * 				@return {object} Returns this for method chaining
+	 * 		{object} rows The row sort options
+	 * 			{function} reset Reset the rows to their original order
+	 * 				@param {string} columnName The name of column to sort by
+	 * 				@return {object} Returns this for method chaining
+	 * 			{function} asc Sorts the rows ascending
+	 * 				@param {string} columnName The name of column to sort by
+	 * 				@return {object} Returns this for method chaining
+	 * 			{function} desc Sorts the rows descending
+	 * 				@param {string} columnName The name of column to sort by
+	 * 				@return {object} Returns this for method chaining
+	 */
 	function sort() {
 		return {
 			columns: sortColumns,
 			rows: sortRows
 		};
 	}
+	/**
+	 * Returns the sort options for columns.
+	 *
+	 * @return {object} The column sort options
+	 * 		{function} reset Reset the columns to their original order
+	 * 			@return {object} Returns this for method chaining
+	 * 		{function} asc Sorts the columns ascending
+	 * 			@return {object} Returns this for method chaining
+	 * 		{function} desc Sorts the columns descending
+	 * 			@return {object} Returns this for method chaining
+	 */
 	function sortColumns() {
 		return {
 			reset: resetColumnOrder,
@@ -136,17 +192,42 @@ function table(columnsConfig) {
 			desc: sortColumnsDesc
 		};
 	}
+	/**
+	 * Resets the column order to the original order.
+	 *
+	 * @return {object} Returns this for method chaining
+	 */
 	function resetColumnOrder() {
 		columnOrder = columnDefaultOrder;
+
+		return this;
 	}
+	/**
+	 * Sorts the columns in ascending order.
+	 *
+	 * @return {object} Returns this for method chaining
+	 */
 	function sortColumnsAsc() {
 		sortColumnsCaseInsensitive();
 
 		return this;
 	}
+	/**
+	 * Sorts the columns in ascending order case insensitive.
+	 *
+	 * @return {array} The columns order array sorted ascending
+	 */
 	function sortColumnsCaseInsensitive() {
 		return columnOrder.sort(sortCaseInsensitive);
 	}
+	/**
+	 * Checks is items are numbers to use numeric sort instead. Otherwise sorts
+	 * them alphabetically. This will prevent numbers being order 1, 10, 2, 3.
+	 *
+	 * @param {mixed} a Item a to sort
+	 * @param {mixed} b Item b to sort
+	 * @return {int} a was greater than b or before b
+	 */
 	function sortCaseInsensitive(a, b) {
 		if (!isNaN(a)) {
 			return sortNumeric(a, b);
@@ -162,37 +243,87 @@ function table(columnsConfig) {
 
 		return 0;
 	}
+	/**
+	 * Sorts two items numerically.
+	 *
+	 * @param {mixed} a Item a to sort
+	 * @param {mixed} b Item b to sort
+	 * @return {int} a was greater than b
+	 */
 	function sortNumeric(a, b) {
 		return a - b;
 	}
+	/**
+	 * Gets the columns in ascending order case insensitive and reverses it.
+	 *
+	 * @return {array} The columns order array sorted descending
+	 */
 	function sortColumnsDesc() {
 		sortColumnsCaseInsensitive().reverse();
 
 		return this;
 	}
-	function sortRows(column) {
+	/**
+	 * Returns the sort options for rows.
+	 *
+	 * @param {string} columnName The column name to sort by.
+	 * @return {object} The sort options for rows
+	 * 		{function} reset Reset the rows to their original order
+	 * 			@param {string} columnName The name of column to sort by
+	 * 			@return {object} Returns this for method chaining
+	 * 		{function} asc Sorts the rows ascending
+	 * 			@param {string} columnName The name of column to sort by
+	 * 			@return {object} Returns this for method chaining
+	 * 		{function} desc Sorts the rows descending
+	 * 			@param {string} columnName The name of column to sort by
+	 * 			@return {object} Returns this for method chaining
+	 */
+	function sortRows(columnName) {
 		return {
 			reset: function() {
 				return sortRowsAsc('index');
 			},
 			asc: function() {
-				return sortRowsAsc(column);
+				return sortRowsAsc(columnName);
 			},
 			desc: function() {
-				return sortRowsDesc(column);
+				return sortRowsDesc(columnName);
 			}
 		};
 	}
-	function sortRowsAsc(column) {
-		sortRowsByAttrCaseInsensitive(column);
+	/**
+	 * Sorts the rows in ascending order case insensitive based on a given
+	 * column.
+	 *
+	 * @param {string} columnName The name of column to sort by
+	 * @return {object} Returns this for method chaining
+	 */
+	function sortRowsAsc(columnName) {
+		sortRowsByAttrCaseInsensitive(columnName);
 
 		return this;
 	}
-	function sortRowsByAttrCaseInsensitive(column) {
+	/**
+	 * Sorts the rows array in ascending order case insensitive based on a given
+	 * column.
+	 *
+	 * @param {string} columnName The name of column to sort by
+	 * @param {mixed} a Item a to sort
+	 * @param {mixed} b Item b to sort
+	 * @return {array} The sorted row array
+	 */
+	function sortRowsByAttrCaseInsensitive(columnName) {
 		return rows.sort(function(a, b) {
-			return sortByAttr(column, a, b);
+			return sortByAttr(columnName, a, b);
 		});
 	}
+	/**
+	 * Sorts two items by a given attribute.
+	 *
+	 * @param {string} attr The attribute to sort by
+	 * @param {a} [varname] [description]
+	 * @return {array} The sorted row array
+	 */
 	function sortByAttr(attr, a, b) {
 		var aAttr = a[attr];
 
@@ -202,11 +333,23 @@ function table(columnsConfig) {
 
 		return sortCaseInsensitive(aAttr, b[attr]);
 	}
-	function sortRowsDesc(column) {
-		sortRowsByAttrCaseInsensitive(column).reverse();
+	/**
+	 * Gets the rows in sorted by the given column in ascending order case
+	 * insensitive and reverses it.
+	 *
+	 * @param {string} columnName The name of column to sort by
+	 * @return {object} Returns this for method chaining
+	 */
+	function sortRowsDesc(columnName) {
+		sortRowsByAttrCaseInsensitive(columnName).reverse();
 
 		return this;
 	}
+	/**
+	 * Prints the entire table.
+	 *
+	 * @return {object} Returns this for method chaining
+	 */
 	function printTable() {
 		printHeader();
 		printRows();
@@ -310,8 +453,43 @@ function table(columnsConfig) {
 		 * @return {object} Returns this for method chaining
 		 */
 		addColumn: addColumn,
+		/**
+		 * Adds a row to the table. The row object for have attributes that match
+		 * the column names not titles.
+		 *
+		 * @param {object} row The row to add
+		 * @return {int} The index of the row added
+		 */
 		addRow: addRow,
+		/**
+		 * Returns the sort options for the table. All sub functions return this
+		 * for method chaining.
+		 *
+		 * @return {object} The sort options
+		 * 		{object} columns The column sort options
+		 * 			{function} reset Reset the columns to their original order
+		 * 				@return {object} Returns this for method chaining
+		 * 			{function} asc Sorts the columns ascending
+		 * 				@return {object} Returns this for method chaining
+		 * 			{function} desc Sorts the columns descending
+		 * 				@return {object} Returns this for method chaining
+		 * 		{object} rows The row sort options
+		 * 			{function} reset Reset the rows to their original order
+		 * 				@param {string} columnName The name of column to sort by
+		 * 				@return {object} Returns this for method chaining
+		 * 			{function} asc Sorts the rows ascending
+		 * 				@param {string} columnName The name of column to sort by
+		 * 				@return {object} Returns this for method chaining
+		 * 			{function} desc Sorts the rows descending
+		 * 				@param {string} columnName The name of column to sort by
+		 * 				@return {object} Returns this for method chaining
+		 */
 		sort: sort,
+		/**
+		 * Prints the entire table.
+		 *
+		 * @return {object} Returns this for method chaining
+		 */
 		print: printTable,
 		live: live,
 		get: getTable
