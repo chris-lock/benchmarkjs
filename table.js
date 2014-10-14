@@ -357,9 +357,20 @@ function table(columnsConfig) {
 
 		return this;
 	}
+	/**
+	 * Prints the table header.
+	 *
+	 * @param {bool} suppressOutput Should we suppress the console.log of the header
+	 * @return {string} The header as a string
+	 */
 	function printHeader(suppressOutput) {
 		return printRow(getHeaderRow(), suppressOutput);
 	}
+	/**
+	 * Gets the header as a row object.
+	 *
+	 * @return {object} The header as a row object
+	 */
 	function getHeaderRow() {
 		var header = {};
 
@@ -369,9 +380,22 @@ function table(columnsConfig) {
 
 		return header;
 	}
+	/**
+	 * Prints the row if we're not suppressing output and returns the value.
+	 *
+	 * @param {bool} suppressOutput Should we suppress the console.log of the row
+	 * @return {object} The row as a string
+	 */
 	function printRow(row, suppressOutput) {
 		return consoleLog(getRow(row), suppressOutput);
 	}
+	/**
+	 * Prints the output if we're not suppressing output and returns the value.
+	 *
+	 * @param {string} output The output to print
+	 * @param {bool} suppressOutput Should we suppress the console.log of the output
+	 * @return {object} The output as a string with a new line return
+	 */
 	function consoleLog(output, suppressOutput) {
 		if (!suppressOutput) {
 			console.log(output);
@@ -379,6 +403,12 @@ function table(columnsConfig) {
 
 		return output + '\n';
 	}
+	/**
+	 * Gets the row as a string formated for the table.
+	 *
+	 * @param {object} row The raw row object
+	 * @return {string} The row formated for the table
+	 */
 	function getRow(row) {
 		var rowOutput = '';
 
@@ -388,18 +418,42 @@ function table(columnsConfig) {
 
 		return rowOutput;
 	}
+	/**
+	 * Gets a column with the right number of spaces to accommodate for the for
+	 * the longest value in that column.
+	 *
+	 * @param {object} row The row object
+	 * @param {string} columnName The column name
+	 * @return {string} The column with the right number of spaces
+	 */
 	function getFormatedColumn(row, columnName) {
 		var columnValue = row[columnName];
+
+		if (columnValue === undefined) {
+			columnValue = '';
+		}
 
 		return columnValue + getSpaces(
 			getColumnWidth(columnName) - String(columnValue).length
 		);
 	}
+	/**
+	 * Gets the column width in spaces.
+	 *
+	 * @param {string} columnName The column name
+	 * @return {string} The column width in spaces
+	 */
 	function getColumnWidth(columnName) {
 		var columnMaxLength = columns[columnName].maxLength;
 
 		return (Math.ceil(columnMaxLength / TAB_SIZE) * TAB_SIZE) + TAB_SIZE;
 	}
+	/**
+	 * Gets a given number of spaces.
+	 *
+	 * @param {int} total The number of spaces
+	 * @return {string} The spaces
+	 */
 	function getSpaces(total) {
 		var spaces = '';
 
@@ -409,6 +463,12 @@ function table(columnsConfig) {
 
 		return spaces;
 	}
+	/**
+	 * Prints the table rows.
+	 *
+	 * @param {bool} suppressOutput Should we suppress the console.log of the rows
+	 * @return {string} The rows as a string
+	 */
 	function printRows(suppressOutput) {
 		var allRows = '';
 
@@ -418,9 +478,27 @@ function table(columnsConfig) {
 
 		return allRows;
 	}
+	/**
+	 * Prints the table footer.
+	 *
+	 * @param {bool} suppressOutput Should we suppress the console.log of the footer
+	 * @return {string} The footer as a string
+	 */
 	function printFooter(suppressOutput) {
 		return consoleLog('', suppressOutput);
 	}
+	/**
+	 * Returns the options for live printing. Should be called start(), print(),
+	 * end().
+	 *
+	 * @return {object} options for live printing
+	 * 		{function} start Prints the header
+	 * 			@return {string} The header as a string
+	 * 		{function} print Prints the current row
+	 * 			@return {string} The row as a string
+	 * 		{function} end Prints the footer
+	 * 			@return {string} The footer as a string
+	 */
 	function live() {
 		return {
 			start: printHeader,
@@ -428,9 +506,19 @@ function table(columnsConfig) {
 			end: printFooter
 		};
 	}
+	/**
+	 * Prints the current row.
+	 *
+	 * @return {string} The current row as a string
+	 */
 	function printCurrentRow() {
-		printRow(rows[rows.length - 1]);
+		return printRow(rows[rows.length - 1]);
 	}
+	/**
+	 * Gets the entire table as a string while suppressing output.
+	 *
+	 * @return {string} The entire table as a string
+	 */
 	function getTable() {
 		return printHeader(true) + printRows(true) + printFooter(true);
 	}
@@ -491,7 +579,24 @@ function table(columnsConfig) {
 		 * @return {object} Returns this for method chaining
 		 */
 		print: printTable,
+		/**
+		 * Returns the options for live printing. Should be called start(), print(),
+		 * end().
+		 *
+		 * @return {object} options for live printing
+		 * 		{function} start Prints the header
+		 * 			@return {string} The header as a string
+		 * 		{function} print Prints the current row
+		 * 			@return {string} The row as a string
+		 * 		{function} end Prints the footer
+		 * 			@return {string} The footer as a string
+		 */
 		live: live,
+		/**
+		 * Gets the entire table as a string while suppressing output.
+		 *
+		 * @return {string} The entire table as a string
+		 */
 		get: getTable
 	}
 }
