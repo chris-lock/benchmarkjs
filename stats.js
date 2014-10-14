@@ -1,21 +1,35 @@
+/**
+ * Stats utility object to getting total, min, max, and average.
+ *
+ * @return {object} Public methods
+ */
 function stats() {
+		/** @type {object} All the stats being tracked. */
 	var stats = {},
+		/** @type {int} The number of decimals to calculate to. */
 		precisionScalar = null;
 
+	/**
+	 * Sets the number of decimals to calculate to.
+	 *
+	 * @param {int} newPrecision The number of decimals to calculate to
+	 * @return {object} Returns this for method chaining
+	 */
 	function setPrecision(newPrecision) {
 		precisionScalar = Math.pow(10, newPrecision);
 
-		resetStats();
+		resetStatsPrecision();
 
 		return this;
 	}
-
-	function resetStats() {
+	function resetStatsPrecision() {
 		for (stat in stats) {
-			stats[stat].pointer = 0;
+			resetStatPrecision(stats[stat]);
 		}
 	}
-
+	function resetStatPrecision(stat) {
+		delete stat.precision;
+	}
 	function addValue(name, value) {
 		var stat = stats[name] || addStat(name);
 
@@ -27,7 +41,6 @@ function stats() {
 
 		return this;
 	}
-
 	function addStat(name) {
 		stats[name] = {
 			values: [],
@@ -36,17 +49,16 @@ function stats() {
 			min: null,
 			max: null,
 			average: null,
+			standardDeviation: null,
 			averageS1: null,
 			averageS2: null
 		}
 
 		return stats[name];
 	}
-
 	function getTotal(name) {
 		return getStatType(name, 'total');
 	}
-
 	function getStatType(name, type) {
 		var stat = stats[name];
 
@@ -56,45 +68,32 @@ function stats() {
 
 		return updateStat(stat)[type];
 	}
-
 	function updateStat(stat) {
-		var size = stat.values.length,
-			value = null,
-			standardDeviation = null;
+		var size = stat.values.length;
 
 		if (stat.pointer < size) {
+			resetStatPrecision(stat);
+
 			while (stat.pointer < size) {
-				value = stat.values[stat.pointer];
-
-				stat.total += value;
-				stat.min = getValueMin(stat.min, value);
-				stat.max = getValueMax(stat.max, value);
-
-				stat.pointer++;
+				updateStatForValue(
+					stat,
+					stat.values[stat.pointer++]
+				);
 			}
 
-			stat.average = stat.total / size;
-			standardDeviation = getStandardDeviation(stat.values, stat.average);
-
-			stat.averageS1 = getAverageInStandardDeviation(
-				stat.values,
-				stat.average,
-				standardDeviation
-			);
-			stat.averageS2 = getAverageInStandardDeviation(
-				stat.values,
-				stat.average,
-				standardDeviation * 2
-			);
+			updateStatAverage(stat);
 		}
 
-		return setStatPrecision(stat);
+		return getStatPrecision(stat);
 	}
-
+	function updateStatForValue(stat, value) {
+		stat.total += value;
+		stat.min = getValueMin(stat.min, value);
+		stat.max = getValueMax(stat.max, value);
+	}
 	function getValueMin(min, value) {
 		return getValueBound('min', min, value);
 	}
-
 	function getValueBound(method, bound, value) {
 		if (bound === null) {
 			return value;
@@ -102,37 +101,41 @@ function stats() {
 
 		return Math[method](bound, value);
 	}
-
 	function getValueMax(max, value) {
 		return getValueBound('max', max, value);
 	}
-
-	function getStandardDeviation(values, average) {
-		var totalVariance = 0,
-			difference = null;
-
-			for (i in values) {
-				difference = average - values[i];
-				totalVariance += difference * difference;
-			}
-
-			return Math.sqrt(totalVariance / values.length);
+	function updateStatAverage(stat) {
+		stat.average = stat.total / stat.values.length;
+		stat.standardDeviation = getStandardDeviation(stat);
+		stat.averageS1 = getAverageInStandardDeviation(stat, 1);
+		stat.averageS2 = getAverageInStandardDeviation(stat, 2);
 	}
+	function getStandardDeviation(stat) {
+		var average = stat.average,
+			values = stat.values,
+			totalVariance = 0;
 
-	function getAverageInStandardDeviation(values, average, standardDeviation) {
-		var valuesInInStandardDeviation = values.filter(function(value) {
-				if (value <= average + standardDeviation
-					&& value >= average - standardDeviation
-				) {
-					return true;
-				}
+		for (i in values) {
+			totalVariance += Math.pow(average - values[i], 2);
+		}
 
-				return false;
-			});
-
-		return getArrayAverage(valuesInInStandardDeviation);
+		return Math.sqrt(totalVariance / values.length);
 	}
+	function getAverageInStandardDeviation(stat, standardDeviations) {
+		return getArrayAverage(
+			getValuesInInStandardDeviation(stat, standardDeviations)
+		);
+	}
+	function getValuesInInStandardDeviation(stat, standardDeviations) {
+		var average = stat.average,
+			standardDeviation = stat.standardDeviation * standardDeviations,
+			max = average + standardDeviation,
+			min = average - standardDeviation;
 
+		return stat.values.filter(function(value) {
+			return (value <= max && value >= min);
+		});
+	}
 	function getArrayAverage(array) {
 		var total = 0;
 
@@ -142,20 +145,20 @@ function stats() {
 
 		return total / array.length;
 	}
-
-	function setStatPrecision(stat) {
-		stat.precision = {
-			total: calculateForPrecision(stat.total),
-			min: calculateForPrecision(stat.min),
-			max: calculateForPrecision(stat.max),
-			average: calculateForPrecision(stat.average),
-			averageS1: calculateForPrecision(stat.averageS1),
-			averageS2: calculateForPrecision(stat.averageS2)
-		};
+	function getStatPrecision(stat) {
+		if (!stat.precision) {
+			stat.precision = {
+				total: calculateForPrecision(stat.total),
+				min: calculateForPrecision(stat.min),
+				max: calculateForPrecision(stat.max),
+				average: calculateForPrecision(stat.average),
+				averageS1: calculateForPrecision(stat.averageS1),
+				averageS2: calculateForPrecision(stat.averageS2)
+			};
+		}
 
 		return stat.precision;
 	}
-
 	function calculateForPrecision(value) {
 		if (precisionScalar === null || value === null) {
 			return value;
@@ -163,28 +166,29 @@ function stats() {
 
 		return Math.round(value * precisionScalar) / precisionScalar;
 	}
-
 	function getMin(name) {
 		return getStatType(name, 'min');
 	}
-
 	function getMax(name) {
 		return getStatType(name, 'max');
 	}
-
 	function getAverage(name) {
 		return getStatType(name, 'average');
 	}
-
 	function getAverageS1(name) {
 		return getStatType(name, 'averageS1');
 	}
-
 	function getAverageS2(name) {
 		return getStatType(name, 'averageS2');
 	}
 
 	return {
+		/**
+		 * Sets the number of decimals to calculate to.
+		 *
+		 * @param {int} newPrecision The number of decimals to calculate to
+		 * @return {object} Returns this for method chaining
+		 */
 		setPrecision: setPrecision,
 		add: addValue,
 		total: getTotal,
@@ -196,6 +200,11 @@ function stats() {
 	}
 }
 
+/**
+ * Exports a new stats object for NodeJs or PhantomJs.
+ *
+ * @export {object} New stats object
+ */
 exports.create = function() {
 	return new stats();
 }

@@ -1,5 +1,5 @@
 /**
- * Table utility object to build, generate, ouput tables in console or text
+ * Table utility object to build, generate, output tables in console or text
  * format.
  *
  * @param {array} columnsConfig An array of object representing column
@@ -321,7 +321,8 @@ function table(columnsConfig) {
 	 * Sorts two items by a given attribute.
 	 *
 	 * @param {string} attr The attribute to sort by
-	 * @param {a} [varname] [description]
+	 * @param {mixed} a Item a to sort
+	 * @param {mixed} b Item b to sort
 	 * @return {array} The sorted row array
 	 */
 	function sortByAttr(attr, a, b) {
