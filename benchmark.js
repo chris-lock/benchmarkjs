@@ -458,8 +458,8 @@ var benchmark = function() {
 			DOMContentLoadedTime,
 			WindowLoadTime
 		);
-		stats.add('DOMContentLoaded', DOMContentLoadedTime);
-		stats.add('WindowLoad', WindowLoadTime);
+		stats.add('DOMContentLoaded', [DOMContentLoadedTime]);
+		stats.add('WindowLoad', [WindowLoadTime]);
 
 		tables.benchmarks.live().print();
 	}

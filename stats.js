@@ -10,7 +10,8 @@ function stats() {
 		precisionScalar = null;
 
 	/**
-	 * Sets the number of decimals to calculate to.
+	 * Sets the number of decimals to calculate to, and resets the precision
+	 * calculations if any have been set.
 	 *
 	 * @param {int} newPrecision The number of decimals to calculate to
 	 * @return {object} Returns this for method chaining
@@ -22,25 +23,46 @@ function stats() {
 
 		return this;
 	}
+	/**
+	 * Resets the precision calculations for all stats.
+	 *
+	 * @return {void}
+	 */
 	function resetStatsPrecision() {
 		for (stat in stats) {
 			resetStatPrecision(stats[stat]);
 		}
 	}
+	/**
+	 * Resets the precision calculations for a given stat.
+	 *
+	 * @param {object} stat The stat object
+	 * @return {void}
+	 */
 	function resetStatPrecision(stat) {
 		delete stat.precision;
 	}
-	function addValue(name, value) {
+	/**
+	 * Adds a set of values to a given stat. If the stat doesn't exist, we
+	 * create it.
+	 *
+	 * @param {string} name The name of the stat to add the values to
+	 * @param {array} values The values to add
+	 * @return {object} Returns this for method chaining
+	 */
+	function addValue(name, values) {
 		var stat = stats[name] || addStat(name);
 
-		if (value instanceof Array) {
-			stat.values = stat.values.concat(value);
-		} else {
-			stat.values.push(value);
-		}
+		stat.values = stat.values.concat(values);
 
 		return this;
 	}
+	/**
+	 * Creates a new stat object with the given name.
+	 *
+	 * @param {string} name The name of the stat to create
+	 * @return {object} The added stat
+	 */
 	function addStat(name) {
 		stats[name] = {
 			values: [],
@@ -56,9 +78,22 @@ function stats() {
 
 		return stats[name];
 	}
+	/**
+	 * Gets the total for a given stat.
+	 *
+	 * @param {string} name The name of the stat to get the total for
+	 * @return {int} The total for the stat
+	 */
 	function getTotal(name) {
 		return getStatType(name, 'total');
 	}
+	/**
+	 * Gets the given type value for a given stat if the stat exists.
+	 *
+	 * @param {string} name The name of the stat to get the type value for
+	 * @param {string} type The type value to get
+	 * @return {int} The value for the type for the stat
+	 */
 	function getStatType(name, type) {
 		var stat = stats[name];
 
@@ -166,18 +201,48 @@ function stats() {
 
 		return Math.round(value * precisionScalar) / precisionScalar;
 	}
+	/**
+	 * Gets the min for a given stat.
+	 *
+	 * @param {string} name The name of the stat to get the min for
+	 * @return {int} The min for the stat
+	 */
 	function getMin(name) {
 		return getStatType(name, 'min');
 	}
+	/**
+	 * Gets the max for a given stat.
+	 *
+	 * @param {string} name The name of the stat to get the max for
+	 * @return {int} The max for the stat
+	 */
 	function getMax(name) {
 		return getStatType(name, 'max');
 	}
+	/**
+	 * Gets the average for a given stat.
+	 *
+	 * @param {string} name The name of the stat to get the average for
+	 * @return {int} The average for the stat
+	 */
 	function getAverage(name) {
 		return getStatType(name, 'average');
 	}
+	/**
+	 * Gets the average within the first standard deviation for a given stat.
+	 *
+	 * @param {string} name The name of the stat to get the one sigma average for
+	 * @return {int} The one sigma average for the stat
+	 */
 	function getAverageS1(name) {
 		return getStatType(name, 'averageS1');
 	}
+	/**
+	 * Gets the average within the second standard deviation for a given stat.
+	 *
+	 * @param {string} name The name of the stat to get the two sigma average for
+	 * @return {int} The two sigma average for the stat
+	 */
 	function getAverageS2(name) {
 		return getStatType(name, 'averageS2');
 	}
@@ -190,13 +255,57 @@ function stats() {
 		 * @return {object} Returns this for method chaining
 		 */
 		setPrecision: setPrecision,
+		/**
+		 * Adds a set of values to a given stat. If the stat doesn't exist, we
+		 * create it.
+		 *
+		 * @param {string} name The name of the stat to add the values to
+		 * @param {array} values The values to add
+		 * @return {object} Returns this for method chaining
+		 */
 		add: addValue,
-		total: getTotal,
-		min: getMin,
-		max: getMax,
-		average: getAverage,
-		averageS1: getAverageS1,
-		averageS2: getAverageS2
+		/**
+		 * Gets the total for a given stat.
+		 *
+		 * @param {string} name The name of the stat to get the total for
+		 * @return {int} The total for the total
+		 */
+		 total: getTotal,
+		/**
+		 * Gets the min for a given stat.
+		 *
+		 * @param {string} name The name of the stat to get the min for
+		 * @return {int} The total for the min
+		 */
+		 min: getMin,
+		/**
+		 * Gets the max for a given stat.
+		 *
+		 * @param {string} name The name of the stat to get the max for
+		 * @return {int} The total for the max
+		 */
+		 max: getMax,
+		/**
+		 * Gets the average for a given stat.
+		 *
+		 * @param {string} name The name of the stat to get the average for
+		 * @return {int} The total for the average
+		 */
+		 average: getAverage,
+		/**
+		 * Gets the average within the first standard deviation for a given stat.
+		 *
+		 * @param {string} name The name of the stat to get the one sigma average for
+		 * @return {int} The total for the one sigma average
+		 */
+		 averageS1: getAverageS1,
+		/**
+		 * Gets the average within the second standard deviation for a given stat.
+		 *
+		 * @param {string} name The name of the stat to get the two sigma average for
+		 * @return {int} The total for the two sigma average
+		 */
+		 averageS2: getAverageS2
 	}
 }
 
