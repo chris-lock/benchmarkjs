@@ -103,6 +103,12 @@ function stats() {
 
 		return updateStat(stat)[type];
 	}
+	/**
+	 * Updates a given stat since we only want to run calculations on demand.
+	 *
+	 * @param {object} stat The stat to update
+	 * @return {object} The precision values from the updated stat
+	 */
 	function updateStat(stat) {
 		var size = stat.values.length;
 
@@ -121,30 +127,75 @@ function stats() {
 
 		return getStatPrecision(stat);
 	}
+	/**
+	 * Updates the stat by reference rather than reassigning it. Updates it's
+	 * total, max, and min.
+	 *
+	 * @param {object} stat The stat to update
+	 * @param {int} value The value to add to the stat
+	 * @return {void}
+	 */
 	function updateStatForValue(stat, value) {
 		stat.total += value;
 		stat.min = getValueMin(stat.min, value);
 		stat.max = getValueMax(stat.max, value);
 	}
+	/**
+	 * Checks if the value being added is a new min. If no min is set, the value
+	 * is used.
+	 *
+	 * @param {int} min The current min
+	 * @param {int} value The value being added
+	 * @return {int} The minimum between the two values
+	 */
 	function getValueMin(min, value) {
-		return getValueBound('min', min, value);
+		return getValueInBound('min', min, value);
 	}
-	function getValueBound(method, bound, value) {
+	/**
+	 * Used for max and min. Checks if the bound is set, if not, the new value
+	 * is used. Otherwise the value is compared to the current value.
+	 *
+	 * @param {string} method The math function that determines the bound
+	 * @param {int} bound The current bound
+	 * @param {int} value The value being added
+	 * @return {int} The bound between the two values
+	 */
+	function getValueInBound(method, bound, value) {
 		if (bound === null) {
 			return value;
 		}
 
 		return Math[method](bound, value);
 	}
+	/**
+	 * Checks if the value being added is a new max. If no max is set, the value
+	 * is used.
+	 *
+	 * @param {int} max The current max
+	 * @param {int} value The value being added
+	 * @return {int} The maximum between the two values
+	 */
 	function getValueMax(max, value) {
-		return getValueBound('max', max, value);
+		return getValueInBound('max', max, value);
 	}
+	/**
+	 * Updates the averages for the entire range, and then the first two
+	 * standard deviations. Again by reference.
+	 *
+	 * @return {void}
+	 */
 	function updateStatAverage(stat) {
 		stat.average = stat.total / stat.values.length;
 		stat.standardDeviation = getStandardDeviation(stat);
 		stat.averageS1 = getAverageInStandardDeviation(stat, 1);
 		stat.averageS2 = getAverageInStandardDeviation(stat, 2);
 	}
+	/**
+	 * Gets the standard deviation for the stat.
+	 *
+	 * @param {object} stat The stat to get the standard deviation for
+	 * @return {int} The standard deviation for the stat
+	 */
 	function getStandardDeviation(stat) {
 		var average = stat.average,
 			values = stat.values,
@@ -156,11 +207,26 @@ function stats() {
 
 		return Math.sqrt(totalVariance / values.length);
 	}
+	/**
+	 * Gets the average for a stat within a given number of standard deviations.
+	 *
+	 * @param {object} stat The stat to get the average for
+	 * @param {int} standardDeviations The number of standard deviations to calculate within
+	 * @return {int} The average for the stat within the given standard deviations
+	 */
 	function getAverageInStandardDeviation(stat, standardDeviations) {
 		return getArrayAverage(
 			getValuesInInStandardDeviation(stat, standardDeviations)
 		);
 	}
+	/**
+	 * Gets all the Values for a stat within a given number of standard
+	 * deviations.
+	 *
+	 * @param {object} stat The stat to get the values from
+	 * @param {int} standardDeviations The number of standard deviations to get values within
+	 * @return {array} The stat values within the given standard deviations
+	 */
 	function getValuesInInStandardDeviation(stat, standardDeviations) {
 		var average = stat.average,
 			standardDeviation = stat.standardDeviation * standardDeviations,
@@ -171,6 +237,12 @@ function stats() {
 			return (value <= max && value >= min);
 		});
 	}
+	/**
+	 * Gets the average for an array.
+	 *
+	 * @param {array} array The array to average
+	 * @return {int} The average for the array
+	 */
 	function getArrayAverage(array) {
 		var total = 0;
 
@@ -180,6 +252,12 @@ function stats() {
 
 		return total / array.length;
 	}
+	/**
+	 * Refines all the values in a stat to the current precision.
+	 *
+	 * @param {object} stat The stat to get the average for
+	 * @return {object} The precision values for the stat
+	 */
 	function getStatPrecision(stat) {
 		if (!stat.precision) {
 			stat.precision = {
@@ -194,6 +272,12 @@ function stats() {
 
 		return stat.precision;
 	}
+	/**
+	 * Refines a value to the current precision.
+	 *
+	 * @param {int} value The refine to the current precision
+	 * @return {int} The value at the precision
+	 */
 	function calculateForPrecision(value) {
 		if (precisionScalar === null || value === null) {
 			return value;
