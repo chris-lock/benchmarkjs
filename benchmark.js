@@ -1,5 +1,7 @@
 /**
  * Checks the DOMContentLoaded and window.load for a url or set of urls.
+ * Calculates the max, min, and average for the entire range as well as one
+ * and two standard deviations to try to eliminate outliers.
  *
  * @param {string} Coma delimited string of urls
  * @param {int} Number of page loads to run.
